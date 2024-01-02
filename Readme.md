@@ -1,6 +1,6 @@
-## A Real Time Chat System
+# A Real Time Chat System
 
-This backend can provide following features:
+This backend provide following features:
 
 ## Admin
 
