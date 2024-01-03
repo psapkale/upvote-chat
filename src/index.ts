@@ -1,6 +1,10 @@
+import {
+   OutgoingMessage,
+   SupportedMessage as OutgoingSupportedMessage,
+} from './messages/outgoingMessages';
 import { server as WebSocketServer, connection } from 'websocket';
 import http from 'http';
-import { IncomingMessage, SupportedMessage } from './messages';
+import { IncomingMessage, SupportedMessage } from './messages/incomingMessages';
 import { UserManager } from './store/UserManger';
 import { InMemoryStore } from './store/InMemoryStore';
 
@@ -50,5 +54,54 @@ wsServer.on('request', function (request) {
 function messageHandler(ws: connection, message: IncomingMessage) {
    if (message.type == SupportedMessage.JoinRoom) {
       const payload = message.payload;
+      userManager.addUser(payload.name, payload.userId, payload.roomId, ws);
+   }
+
+   if (message.type === SupportedMessage.SendMessage) {
+      const payload = message.payload;
+      const user = userManager.getUser(payload.roomId, payload.userId);
+      if (!user) {
+         console.log('User not found in db');
+         return;
+      }
+      let chat = store.addChat(
+         payload.userId,
+         user.name,
+         payload.roomId,
+         payload.message
+      );
+      if (!chat) {
+         return;
+      }
+      // Todo add broadcast logic here
+      const outgoingPayload: OutgoingMessage = {
+         type: OutgoingSupportedMessage.AddChat,
+         payload: {
+            chatId: chat.id,
+            roomId: payload.roomId,
+            message: payload.message,
+            name: user.name,
+            upvotes: 0,
+         },
+      };
+      userManager.broadcast(payload.roomId, payload.userId, outgoingPayload);
+   }
+
+   if (message.type === SupportedMessage.UpvoteMessage) {
+      const payload = message.payload;
+      const chat = store.upvote(payload.userId, payload.roomId, payload.chatId);
+      if (!chat) {
+         return;
+      }
+
+      const outgoingPayload: OutgoingMessage = {
+         type: OutgoingSupportedMessage.UpdateChat,
+         payload: {
+            chatId: payload.chatId,
+            roomId: payload.roomId,
+            upvotes: chat.upvotes.length,
+         },
+      };
+      userManager.broadcast(payload.roomId, payload.userId, outgoingPayload);
    }
 }
