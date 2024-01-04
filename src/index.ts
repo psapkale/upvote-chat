@@ -20,7 +20,7 @@ server.listen(8080);
 
 const wsServer = new WebSocketServer({
    httpServer: server,
-   autoAcceptConnections: true,
+   autoAcceptConnections: false,
 });
 
 function originIsAllowed(origin: string) {
@@ -37,6 +37,8 @@ wsServer.on('request', function (request) {
    var connection = request.accept('echo-protocol', request.origin);
    console.log('Conenction accepted');
    connection.on('message', function (message) {
+      console.log('connected');
+
       // Todo add rate limiting logic here
       if (message.type === 'utf8') {
          try {
@@ -45,9 +47,6 @@ wsServer.on('request', function (request) {
          // console.log('Received Message: ' + message.utf8Data);
          // connection.sendUTF(message.utf8Data);
       }
-   });
-   connection.on('close', function (reasonCode, description) {
-      console.log(`Peer ${connection.remoteAddress} disconnected`);
    });
 });
 
