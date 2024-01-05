@@ -2,38 +2,71 @@
    <script>
       const ws = new WebSocket('ws://localhost:8080', 'echo-protocol');
       const userId = Math.floor(Math.random() * 1000);
-      ws.onopen = () => {
+      ws.onopen = function () {
          ws.send(
             JSON.stringify({
                type: 'JOIN_ROOM',
                payload: {
                   name: 'prem',
                   userId,
-                  roomId: '1',
+                  roomId: '2',
                },
             })
          );
       };
       ws.onmessage = function (event) {
+         alert(event.data);
          try {
             const { payload, type } = JSON.parse(event.data);
+
             if (type === 'ADD_CHAT') {
-               const textNode = document.createElement('div');
-               textNode.innerHTML = payload.message + ` (${payload.upvotes})`;
+               alert('hi');
+               const textNode = document.createElement('p');
+               textNode.innerHTML = payload.message;
+               const buttonNode = document.createElement('button');
+               buttonNode.innerHTML = ` (${payload.upvotes})`;
+               buttonNode.setAttribute(
+                  'onclick',
+                  `sendUpvote(${payload.chatId})`
+               );
+               buttonNode.setAttribute('id', `message-${payload.chatId}`);
+
                document.getElementById('messages').appendChild(textNode);
+               document.getElementById('messages').appendChild(buttonNode);
+            }
+            if (type === 'UPDATE_CHAT') {
+               const buttonNode = document.getElementById(
+                  `message-${payload.chatId}`
+               );
+               buttonNode.innerHTML = ` (${payload.upvotes})`;
             }
          } catch (e) {
             console.error(e);
          }
       };
-      function sendchat() {
+
+      function sendUpvote(chatId) {
+         ws.send(
+            JSON.stringify({
+               type: 'UPVOTE_MESSAGE',
+               payload: {
+                  userId: userId,
+                  roomId: '2',
+                  chatId,
+               },
+            })
+         );
+      }
+
+      function sendChat() {
          ws.send(
             JSON.stringify({
                type: 'SEND_MESSAGE',
                payload: {
                   message: document.getElementById('inputtext').value,
+                  // chatId,
                   userId: userId,
-                  roomId: '1',
+                  roomId: '2',
                },
             })
          );
@@ -44,5 +77,5 @@
    <input type="text" id="inputtext" />
    <div id="messages"></div>
    <br />
-   <button onclick="sendchat()">Send chat</button>
+   <button onclick="sendChat()">Send chat</button>
 </html>
